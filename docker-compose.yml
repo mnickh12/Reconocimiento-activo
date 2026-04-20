@@ -1,0 +1,83 @@
+version: '3.8'
+
+services:
+  # Host objetivo 1: Servidor web (puerto 80 abierto)
+  target-web:
+    image: nginx:alpine
+    container_name: target-web
+    networks:
+      lab_network:
+        ipv4_address: 172.20.0.10
+    ports:
+      - "8080:80"  # Opcional: mapear a host para pruebas externas
+    restart: unless-stopped
+
+  # Host objetivo 2: Servidor con múltiples servicios (SSH + HTTP alternativo)
+  target-multi:
+    image: alpine:latest
+    container_name: target-multi
+    networks:
+      lab_network:
+        ipv4_address: 172.20.0.11
+    ports:
+      - "2222:22"   # SSH mapeado al 2222 del host
+      - "8081:8080" # HTTP en 8080 dentro del contenedor
+    command: >
+      sh -c "
+      apk add --no-cache openssh-server python3 &&
+      ssh-keygen -A &&
+      echo 'root:password' | chpasswd &&
+      /usr/sbin/sshd -D &
+      python3 -m http.server 8080 &
+      wait
+      "
+    restart: unless-stopped
+
+  # Host objetivo 3: Solo puerto UDP (simulado con netcat)
+  target-udp:
+    image: alpine:latest
+    container_name: target-udp
+    networks:
+      lab_network:
+        ipv4_address: 172.20.0.12
+    command: >
+      sh -c "
+      apk add --no-cache netcat-openbsd &&
+      nc -u -l -p 53 -k -e /bin/sh
+      "
+    restart: unless-stopped
+
+  # Host con puertos cerrados pero activo (solo responde a ping/ICMP)
+  target-icmp-only:
+    image: alpine:latest
+    container_name: target-icmp-only
+    networks:
+      lab_network:
+        ipv4_address: 172.20.0.13
+    command: ["sh", "-c", "tail -f /dev/null"]
+    restart: unless-stopped
+
+  # Contenedor atacante (donnde ejecutarás tus scripts)
+  attacker:
+    image: kalilinux/kali-rolling:latest
+    container_name: attacker
+    networks:
+      lab_network:
+        ipv4_address: 172.20.0.2
+    volumes:
+      - ./src:/root/src          # Monta tu código
+      - ./capturas:/root/capturas # Para guardar capturas con tcpdump
+    working_dir: /root
+    command: ["sleep", "infinity"]
+    cap_add:
+      - NET_RAW     # Necesario para Scapy (enviar paquetes raw)
+      - NET_ADMIN
+    stdin_open: true
+    tty: true
+
+networks:
+  lab_network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
