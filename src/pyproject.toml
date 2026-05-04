@@ -1,0 +1,8 @@
+[project]
+name = "host-discovery"
+version = "0.1.0"
+description = "Práctica 2: Reconocimiento Activo - Descubrimiento de hosts con Scapy"
+requires-python = ">=3.10"
+dependencies = [
+    "scapy>=2.5.0",
+]
