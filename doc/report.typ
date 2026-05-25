@@ -1,6 +1,6 @@
 #set document(
   title: "Práctica 2: Reconocimiento Activo",
-  author: "Autor: [Tu Nombre Completo]",
+  author: "Autor: Marcos Pérez García",
   date: datetime(year: 2026, month: 5, day: 25),
 )
 
@@ -24,8 +24,7 @@
   #text(size: 1.4em)[Práctica 2: Reconocimiento Activo]
   
   #v(2em)
-  #text(size: 1em)[[Tu Nombre Completo]]
-  #text(size: 0.9em)[[Tu Email Universitario]]
+  #text(size: 1em)[Marcos Pérez García]
   #text(size: 0.9em)[Fecha de entrega: 25 de mayo de 2026]
 ]
 
@@ -80,13 +79,13 @@ El entorno de pruebas se ha implementado utilizando contenedores Docker, lo que 
 
 === Metodología
 
-Para el descubrimiento de hosts se ha implementado la función \texttt{craft\_discovery\_pkts} en Python, utilizando la biblioteca Scapy. Esta función construye paquetes de red personalizados según los protocolos especificados:
+Para el descubrimiento de hosts se ha implementado la función `craft_discovery_pkts` en Python, utilizando la biblioteca Scapy. Esta función construye paquetes de red personalizados según los protocolos especificados:
 
-- \textit{ICMP Timestamp Request (tipo 13):} solicita al host destino su marca de tiempo actual. Si el host está activo y no filtra este tipo de mensajes ICMP, responderá con un ICMP Timestamp Reply (tipo 14), según lo definido en el RFC 792.
+- *ICMP Timestamp Request (tipo 13):* solicita al host destino su marca de tiempo actual. Si el host está activo y no filtra este tipo de mensajes ICMP, responderá con un ICMP Timestamp Reply (tipo 14), según lo definido en el RFC 792.
 
-- \textit{TCP ACK:} envía un paquete TCP con el flag ACK activado. Según el RFC 793, un host que recibe un paquete ACK no solicitado debe responder con un paquete RST (Reset), lo que confirma su presencia en la red. Este comportamiento es independiente de si el puerto está abierto o cerrado.
+- *TCP ACK:* envía un paquete TCP con el flag ACK activado. Según el RFC 793, un host que recibe un paquete ACK no solicitado debe responder con un paquete RST (Reset), lo que confirma su presencia en la red. Este comportamiento es independiente de si el puerto está abierto o cerrado.
 
-- \textit{UDP:} envía un datagrama UDP a un puerto específico. Si el puerto está cerrado, el host debería responder con un mensaje ICMP Port Unreachable (tipo 3, código 3). Si el puerto está abierto, generalmente no se recibe respuesta, según el RFC 768.
+- *UDP:* envía un datagrama UDP a un puerto específico. Si el puerto está cerrado, el host debería responder con un mensaje ICMP Port Unreachable (tipo 3, código 3). Si el puerto está abierto, generalmente no se recibe respuesta, según el RFC 768.
 
 === Entorno de pruebas
 
@@ -111,19 +110,11 @@ Se ha configurado un entorno controlado mediante Docker, con la siguiente topolo
 
 Nmap clasifica los puertos en seis estados posibles. La determinación del estado se realiza mediante el envío de paquetes TCP SYN y el análisis de las respuestas recibidas, prestando atención a los campos específicos de cada paquete. A continuación se detallan los tres estados principales:
 
-\v(0.5em)
+*Abierto (open):* una aplicación en el host destino está aceptando conexiones en ese puerto. El estímulo enviado es un paquete TCP con el flag SYN activado (SYN=1). Si el puerto está abierto, el destino responde con un paquete TCP que tiene los flags SYN y ACK activados (SYN=1, ACK=1), completando la segunda fase del three-way handshake. Nmap interpreta esta respuesta y marca el puerto como abierto, tras lo cual envía un paquete RST para no completar la conexión (en escaneo SYN stealth).
 
-\textbf{Abierto (open):} una aplicación en el host destino está aceptando conexiones en ese puerto. El estímulo enviado es un paquete TCP con el flag SYN activado (SYN=1). Si el puerto está abierto, el destino responde con un paquete TCP que tiene los flags SYN y ACK activados (SYN=1, ACK=1), completando la segunda fase del three-way handshake. Nmap interpreta esta respuesta y marca el puerto como abierto, tras lo cual envía un paquete RST para no completar la conexión (en escaneo SYN stealth).
+*Cerrado (closed):* el puerto es accesible pero no hay ninguna aplicación escuchando en él. El estímulo es el mismo: un paquete TCP SYN. Sin embargo, al no existir un servicio vinculado al puerto, el sistema operativo del host destino responde con un paquete TCP con el flag RST activado (RST=1, ACK=1). Esta respuesta indica que el puerto está disponible a nivel de red pero no hay servicio asociado.
 
-\v(0.5em)
-
-\textbf{Cerrado (closed):} el puerto es accesible pero no hay ninguna aplicación escuchando en él. El estímulo es el mismo: un paquete TCP SYN. Sin embargo, al no existir un servicio vinculado al puerto, el sistema operativo del host destino responde con un paquete TCP con el flag RST activado (RST=1, ACK=1). Esta respuesta indica que el puerto está disponible a nivel de red pero no hay servicio asociado.
-
-\v(0.5em)
-
-\textbf{Filtrado (filtered):} un firewall, filtro de paquetes u otro dispositivo de red impide que la sonda llegue al puerto destino. Como resultado, no se recibe ninguna respuesta, o bien se recibe un mensaje ICMP tipo 3 (Destination Unreachable) con códigos 1, 2, 3, 9, 10 o 13. Nmap no puede determinar si el puerto está abierto o cerrado porque la respuesta ha sido bloqueada.
-
-\v(0.5em)
+*Filtrado (filtered):* un firewall, filtro de paquetes u otro dispositivo de red impide que la sonda llegue al puerto destino. Como resultado, no se recibe ninguna respuesta, o bien se recibe un mensaje ICMP tipo 3 (Destination Unreachable) con códigos 1, 2, 3, 9, 10 o 13. Nmap no puede determinar si el puerto está abierto o cerrado porque la respuesta ha sido bloqueada.
 
 #figure(
   table(
@@ -136,17 +127,15 @@ Nmap clasifica los puertos en seis estados posibles. La determinación del estad
   caption: [Determinación del estado de puertos según estímulos y respuestas analizadas]
 )
 
-\v(1em)
-
 Esta clasificación es fundamental para el auditor, ya que permite identificar no solo los servicios disponibles, sino también la presencia de firewalls y la postura de seguridad del objetivo.
 
 === Comportamiento por defecto de Nmap
 
-Cuando se ejecuta Nmap sin opciones adicionales (simplemente \texttt{nmap <IP>}), se activan los siguientes comportamientos preconfigurados:
+Cuando se ejecuta Nmap sin opciones adicionales (simplemente `nmap <IP>`), se activan los siguientes comportamientos preconfigurados:
 
 - Realiza un escaneo de tipo TCP SYN (conocido como SYN stealth o half-open scan) si se ejecuta con privilegios de root. Esto implica enviar paquetes TCP con flag SYN y analizar las respuestas sin completar el three-way handshake.
 
-- Escanea los 1000 puertos TCP más comunes, definidos en el archivo \texttt{nmap-services}. Esta selección cubre los puertos donde estadísticamente se encuentran la mayoría de servicios.
+- Escanea los 1000 puertos TCP más comunes, definidos en el archivo `nmap-services`. Esta selección cubre los puertos donde estadísticamente se encuentran la mayoría de servicios.
 
 - Por cada puerto, envía un paquete TCP SYN desde un puerto origen aleatorio. Si recibe SYN+ACK, marca el puerto como abierto y envía RST para cerrar. Si recibe RST, marca como cerrado. Si no recibe respuesta tras varias retransmisiones, marca como filtrado.
 
@@ -189,7 +178,7 @@ Se escaneó la IP 172.20.0.99, que no corresponde a ningún contenedor en la red
   caption: [Resultados del escaneo a 172.20.0.99]
 )
 
-La ausencia total de respuestas confirma que no hay un host activo en esa dirección IP. Scapy mostró el aviso \texttt{MAC address to reach destination not found. Using broadcast}, indicando que no se pudo resolver la dirección MAC del destino mediante ARP, lo cual es consistente con una IP no asignada en la red local.
+La ausencia total de respuestas confirma que no hay un host activo en esa dirección IP. Scapy mostró el aviso "MAC address to reach destination not found. Using broadcast", indicando que no se pudo resolver la dirección MAC del destino mediante ARP, lo cual es consistente con una IP no asignada en la red local.
 
 === Prueba 3: Rango completo de red
 
@@ -201,15 +190,11 @@ Se escaneó el rango 172.20.0.0/24, detectando correctamente los hosts activos c
 
 Para analizar en profundidad el comportamiento de Nmap, se utilizó Tcpdump como sniffer de paquetes. Se capturó todo el tráfico entre el contenedor atacante (172.20.0.2) y el objetivo target-web (172.20.0.10) durante un escaneo por defecto. La captura se realizó con el comando:
 
-\v(0.5em)
-\texttt{tcpdump -i br-XXXXX -w captura\_nmap.pcap}
-\v(0.5em)
+`tcpdump -i br-XXXXX -w captura_nmap.pcap`
 
 Posteriormente, se aplicó un filtro para aislar únicamente el tráfico relevante:
 
-\v(0.5em)
-\texttt{tcpdump -r captura\_nmap.pcap -nn host 172.20.0.10 and host 172.20.0.2}
-\v(0.5em)
+`tcpdump -r captura_nmap.pcap -nn host 172.20.0.10 and host 172.20.0.2`
 
 === Resultados del análisis de tráfico
 
@@ -236,8 +221,6 @@ El análisis de la captura reveló el siguiente patrón de tráfico:
   caption: [Análisis detallado del tráfico capturado con Tcpdump durante el escaneo de Nmap a 172.20.0.10]
 )
 
-\v(1em)
-
 Cada puerto cerrado generó 2 paquetes: un SYN saliente y un RST entrante (999 puertos × 2 = 1998 paquetes). El puerto 80 abierto generó 3 paquetes: SYN, SYN+ACK y RST de cierre. Los paquetes restantes corresponden a tráfico ARP para resolución de direcciones MAC.
 
 === Escaneo a target-multi (172.20.0.11)
@@ -250,7 +233,7 @@ Los 1000 puertos escaneados aparecen como cerrados. El host responde a ICMP (lo 
 
 === Verificación de puerto cerrado
 
-Se verificó explícitamente el puerto 22 en target-web con \texttt{nmap -p 22 172.20.0.10}, confirmando su estado cerrado (TCP RST). Esto valida que el host solo expone el servicio HTTP en el puerto 80.
+Se verificó explícitamente el puerto 22 en target-web con `nmap -p 22 172.20.0.10`, confirmando su estado cerrado (TCP RST). Esto valida que el host solo expone el servicio HTTP en el puerto 80.
 
 #pagebreak()
 
@@ -276,11 +259,11 @@ El desarrollo de esta práctica ha permitido alcanzar los siguientes objetivos y
 
 = Bibliografía
 
-- Gordon Lyon. \textit{Nmap Network Scanning}. 2009. URL: https://nmap.org/book/
-- Philippe Biondi. \textit{Scapy: Packet crafting for Python}. 2025. URL: https://scapy.readthedocs.io/
-- Docker Inc. \textit{Docker Documentation}. 2025. URL: https://docs.docker.com/
-- The Tcpdump Group. \textit{TCPDUMP \& LIBPCAP}. 2025. URL: https://www.tcpdump.org/
-- Chris McNab. \textit{Network Security Assessment: Know Your Network}. 3.ª ed. O'Reilly Media, 2016.
-- Jon Postel. \textit{RFC 792: Internet Control Message Protocol}. 1981.
-- Jon Postel. \textit{RFC 793: Transmission Control Protocol}. 1981.
-- Jon Postel. \textit{RFC 768: User Datagram Protocol}. 1980.
+- Gordon Lyon. *Nmap Network Scanning*. 2009. URL: https://nmap.org/book/
+- Philippe Biondi. *Scapy: Packet crafting for Python*. 2025. URL: https://scapy.readthedocs.io/
+- Docker Inc. *Docker Documentation*. 2025. URL: https://docs.docker.com/
+- The Tcpdump Group. *TCPDUMP & LIBPCAP*. 2025. URL: https://www.tcpdump.org/
+- Chris McNab. *Network Security Assessment: Know Your Network*. 3.ª ed. O'Reilly Media, 2016.
+- Jon Postel. *RFC 792: Internet Control Message Protocol*. 1981.
+- Jon Postel. *RFC 793: Transmission Control Protocol*. 1981.
+- Jon Postel. *RFC 768: User Datagram Protocol*. 1980.
